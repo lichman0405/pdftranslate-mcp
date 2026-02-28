@@ -132,6 +132,7 @@ Edit `~/.featherflow/config.json` (or the config file for your setup). Add `pdf2
       "pdf2zh": {
         "command": "/opt/PDFMathTranslate/.venv/bin/python",
         "args": ["-m", "pdf2zh.mcp_server"],
+        "toolTimeout": 600,
         "env": {
           "OPENAI_BASE_URL": "https://openrouter.ai/api/v1",
           "OPENAI_API_KEY": "sk-or-v1-xxxxxxxx",
@@ -152,6 +153,7 @@ Edit `~/.featherflow/config.json` (or the config file for your setup). Add `pdf2
       "pdf2zh": {
         "command": "C:/Users/<you>/code/PDFMathTranslate/.venv/python.exe",
         "args": ["-m", "pdf2zh.mcp_server"],
+        "toolTimeout": 600,
         "env": {
           "OPENAI_BASE_URL": "https://openrouter.ai/api/v1",
           "OPENAI_API_KEY": "sk-or-v1-xxxxxxxx",
@@ -165,6 +167,23 @@ Edit `~/.featherflow/config.json` (or the config file for your setup). Add `pdf2
 
 > **Tip:** On Windows, use forward slashes `/` in JSON paths — they work fine with Python's `pathlib`.
 
+### Tool Timeout — Critical for PDF Translation
+
+> **⚠️ You MUST set `toolTimeout` for the pdf2zh MCP server.**
+>
+> FeatherFlow's default MCP tool timeout is **30 seconds**. PDF translation is a heavy operation — a 6-page paper typically takes **1–5 minutes** depending on the LLM speed. Without increasing `toolTimeout`, the tool call will be cancelled mid-translation, and the agent will report a failure.
+>
+> **Recommended:** `"toolTimeout": 600` (10 minutes). For very long documents (50+ pages), consider `1200` (20 minutes).
+
+```json
+"pdf2zh": {
+  "command": "...",
+  "args": ["-m", "pdf2zh.mcp_server"],
+  "toolTimeout": 600,
+  ...
+}
+```
+
 ### Environment Variables
 
 | Variable | Required | Description |
@@ -172,6 +191,7 @@ Edit `~/.featherflow/config.json` (or the config file for your setup). Add `pdf2
 | `OPENAI_BASE_URL` | Yes | API base URL (e.g. `https://openrouter.ai/api/v1`, `https://api.openai.com/v1`) |
 | `OPENAI_API_KEY` | Yes | API key for the provider |
 | `OPENAI_MODEL` | Yes | Model identifier (e.g. `anthropic/claude-opus-4-5`, `gpt-4o`) |
+| `OPENAI_TEMPERATURE` | No | Override LLM temperature. **Omit for reasoning models** (e.g. `kimi-k2.5`) which enforce their own temperature. Set to `0` for deterministic output with standard models. |
 | `WORKSPACE_DIR` | No | Shared workspace directory. Defaults to `~/.featherflow/workspace` (same as FeatherFlow's built-in file tools and `paper_download`). Override this if your workspace is at a non-standard location. |
 
 The `OPENAI_*` variables are the same credentials FeatherFlow uses — just pass them through via `env`. `WORKSPACE_DIR` usually does not need to be set; it automatically uses FeatherFlow's default workspace.
