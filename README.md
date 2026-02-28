@@ -1,364 +1,195 @@
-<div align="center">
-	<a href="https://go.warp.dev/PDFMathTranslate" target="_blank">
-		<sup>Special thanks to:</sup>
-		<br>
-		<img alt="Warp sponsorship" width="400" src="https://github.com/warpdotdev/brand-assets/blob/main/Github/Sponsor/Warp-Github-LG-02.png">
-		<br>
-		<h>Warp, built for coding with multiple AI agents</b>
-		<br>
-		<sup>Available for macOS, Linux and Windows</sup>
-	</a>
-</div>
+# PDF2ZH — FeatherFlow MCP Server for PDF Translation
 
-<br>
+A slim [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) tool server that translates scientific PDF documents while **preserving formulas, charts, table of contents, and layout**. Designed to be launched and managed by [FeatherFlow](https://github.com/lichman0405/featherflow).
 
-<div align="center">
+Based on [PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate), stripped down to a single OpenAI-compatible translation backend — reusing the same LLM that FeatherFlow is already connected to.
 
-English | [简体中文](docs/README_zh-CN.md) | [繁體中文](docs/README_zh-TW.md) | [日本語](docs/README_ja-JP.md) | [한국어](docs/README_ko-KR.md)
+## Features
 
-<img src="./docs/images/banner.png" width="320px"  alt="PDF2ZH"/>
+- **MCP stdio transport** — plug-and-play with FeatherFlow (or any MCP-compatible host)
+- **Preserves formulas & layout** — powered by ONNX-based document layout analysis + pdfminer/pymupdf
+- **Dual output** — generates both *mono* (translated-only) and *dual* (bilingual side-by-side) PDFs
+- **Shares FeatherFlow's LLM** — OpenAI-compatible endpoint via environment variables, no extra API key needed
+- **Cross-platform** — works on Linux and Windows; all paths use `pathlib` for portability
 
-<h2 id="title">PDFMathTranslate</h2>
+## MCP Tools
 
-<p>
-  <!-- PyPI -->
-  <a href="https://pypi.org/project/pdf2zh/">
-    <img src="https://img.shields.io/pypi/v/pdf2zh"></a>
-  <a href="https://pepy.tech/projects/pdf2zh">
-    <img src="https://static.pepy.tech/badge/pdf2zh"></a>
-  <a href="https://hub.docker.com/r/byaidu/pdf2zh">
-    <img src="https://img.shields.io/docker/pulls/byaidu/pdf2zh"></a>
-  <a href="https://hellogithub.com/repository/8ec2cfd3ef744762bf531232fa32bc47" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=8ec2cfd3ef744762bf531232fa32bc47&claim_uid=JQ0yfeBNjaTuqDU&theme=small" alt="Featured｜HelloGitHub" /></a>
-  <a href="https://gitcode.com/Byaidu/PDFMathTranslate/overview">
-    <img src="https://gitcode.com/Byaidu/PDFMathTranslate/star/badge.svg"></a>
-  <a href="https://huggingface.co/spaces/reycn/PDFMathTranslate-Docker">
-    <img src="https://img.shields.io/badge/%F0%9F%A4%97-Online%20Demo-FF9E0D"></a>
-  <a href="https://www.modelscope.cn/studios/AI-ModelScope/PDFMathTranslate">
-    <img src="https://img.shields.io/badge/ModelScope-Demo-blue"></a>
-  <a href="https://github.com/Byaidu/PDFMathTranslate/pulls">
-    <img src="https://img.shields.io/badge/contributions-welcome-green"></a>
-  <a href="https://t.me/+Z9_SgnxmsmA5NzBl">
-    <img src="https://img.shields.io/badge/Telegram-2CA5E0?style=flat-squeare&logo=telegram&logoColor=white"></a>
-  <!-- License -->
-  <a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/Byaidu/PDFMathTranslate"></a>
-</p>
+| Tool | Description |
+|------|-------------|
+| `translate_pdf` | Translate a PDF file. Accepts `file`, `lang_in`, `lang_out`, optional `output_dir`. Returns **absolute paths** to mono & dual PDFs. |
+| `list_supported_languages` | List all supported language codes (`en`, `zh`, `ja`, `ko`, `fr`, `de`, etc.) |
 
-<a href="https://trendshift.io/repositories/12424" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12424" alt="Byaidu%2FPDFMathTranslate | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+### File Path Resolution
 
-</div>
+The `file` parameter of `translate_pdf` supports both absolute and relative paths:
 
-<h2 id="updates">1. What does this do?</h2>
+- **Absolute path** — used as-is (e.g. `/home/user/.featherflow/workspace/paper.pdf`)
+- **Relative path** — resolved against the **workspace directory** (defaults to `~/.featherflow/workspace`, overridable via the `WORKSPACE_DIR` environment variable)
 
-Scientific PDF document translation preserving layouts.
+Output PDFs are written to the workspace directory by default. The returned paths are always absolute, making them directly usable by other MCP tools (e.g. feishu-mcp `upload_file` / `upload_file_and_share`).
 
-- 📊 Preserve formulas, charts, table of contents, and annotations.
-- 🌐 Support [multiple languages](#usage), and diverse [translation services](#usage).
-- 🤖 Provides [commandline tool](#usage), [interactive user interface](#install), and [Docker](#install)
+## Requirements
 
-<div align="center">
-<img src="./docs/images/preview.gif" width="80%"/>
-</div>
-
-<h2 id="updates">2. Recent Updates</h2>
-
-- [May 9, 2025] pdf2zh 2.0 Preview Version [#586](https://github.com/Byaidu/PDFMathTranslate/issues/586): The Windows ZIP file and Docker image are now available.
-
-  > [!NOTE]
-  >
-  > 2.0 Moved to a new repository under the organization: [PDFMathTranslate/PDFMathTranslate-next](https://github.com/PDFMathTranslate/PDFMathTranslate-next)
-  > 
-  > Version 2.0 official release has been published.
-
-- [Mar. 3, 2025] Experimental support for the new backend [BabelDOC](https://github.com/funstory-ai/BabelDOC) WebUI added as an experimental option (by [@awwaawwa](https://github.com/awwaawwa))
-- [Feb. 22 2025] Better release CI and well-packaged windows-amd64 exe (by [@awwaawwa](https://github.com/awwaawwa))
-
-
-<h2 id="use-section">3. Use 🌟</h2>
-<h3 id="demo">3.1 Online Service 🌟</h3>
-
-You can try our application out using either of the following demos:
-
-- [Public free service](https://pdf2zh.com/) online without installation _(recommended)_.
-- [Immersive Translate - BabelDOC](https://app.immersivetranslate.com/babel-doc/) Free usage quota is available; please refer to the FAQ section on the page for details. _(recommended)_
-- [Demo hosted on HuggingFace](https://huggingface.co/spaces/reycn/PDFMathTranslate-Docker)
-- [Demo hosted on ModelScope](https://www.modelscope.cn/studios/AI-ModelScope/PDFMathTranslate) without installation.
-
-Note that the computing resources of the demo are limited, so please avoid abusing them.
-
-<h3 id="install">3.2 Local Installation</h3>
-
-For different use cases, we provide distinct methods to use our program:
-
-<details open>
-  <summary>3.2.1 Python: Install using uv</summary>
-
-1. Python installed (3.10 <= version <= 3.12)
-
-2. Install our package:
-
-   ```bash
-   pip install uv
-   uv tool install --python 3.12 pdf2zh
-   ```
-
-3. Execute translation, files generated in [current working directory](https://chatgpt.com/share/6745ed36-9acc-800e-8a90-59204bd13444):
-
-   ```bash
-   pdf2zh document.pdf
-   ```
-
-</details>
-<details>
-  <summary>3.2.2 Python: Install using pip</summary>
-
-1. Python installed (3.10 <= version <= 3.12)
-2. Install our package:
-
-   ```bash
-   pip install pdf2zh
-   ```
-
-3. Execute translation, files generated in [current working directory](https://chatgpt.com/share/6745ed36-9acc-800e-8a90-59204bd13444):
-
-   ```bash
-   pdf2zh document.pdf
-   ```
-
-</details>
-<details>
-  <summary>3.3.3 Python: Graphic user interface</summary>
-
-1. Python installed (3.10 <= version <= 3.12)
-
-2. Install our package:
-
-  ```bash
-  pip install pdf2zh
-  ```
-
-3. Start using in browser:
-
-   ```bash
-   pdf2zh -i
-   ```
-
-4. If your browser has not been started automatically, goto
-
-   ```bash
-   http://localhost:7860/
-   ```
-
-   <img src="./docs/images/gui.gif" width="500"/>
-
-See [documentation for GUI](./docs/README_GUI.md) for more details.
-
-</details>
-
-<details>
-  <summary>3.2.4 Application: On Windows</summary>
-
-1. Download pdf2zh-version-win64.zip from [release page](https://github.com/Byaidu/PDFMathTranslate/releases)
-
-2. Unzip and double-click `pdf2zh.exe` to run.
-
-
-  > [!TIP]
-  >
-  > - If you're using Windows and cannot open the file after downloading, please install [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe) and try again.
-  > 
-</details>
-
-
-<details>
-
-<summary>3.2.5 Reference manager: Zotero Plugin</summary>
-
-
-See [Zotero PDF2zh](https://github.com/guaguastandup/zotero-pdf2zh) for more details.
-
-</details>
-
-
-<details>
-  <summary>3.2.6 Docker: Containerized Deployment</summary>
-
-1. Pull and run:
-
-   ```bash
-   docker pull byaidu/pdf2zh
-   docker run -d -p 7860:7860 byaidu/pdf2zh
-   ```
-
-2. Open in browser:
-
-   ```
-   http://localhost:7860/
-   ```
-
-For docker deployment on cloud service:
-
-<div>
-<a href="https://www.heroku.com/deploy?template=https://github.com/Byaidu/PDFMathTranslate">
-  <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy" height="26"></a>
-<a href="https://render.com/deploy">
-  <img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Koyeb" height="26"></a>
-<a href="https://zeabur.com/templates/5FQIGX?referralCode=reycn">
-  <img src="https://zeabur.com/button.svg" alt="Deploy on Zeabur" height="26"></a>
-<a href="https://template.sealos.io/deploy?templateName=pdf2zh">
-  <img src="https://sealos.io/Deploy-on-Sealos.svg" alt="Deploy on Sealos" height="26"></a>
-<a href="https://app.koyeb.com/deploy?type=git&builder=buildpack&repository=github.com/Byaidu/PDFMathTranslate&branch=main&name=pdf-math-translate">
-  <img src="https://www.koyeb.com/static/images/deploy/button.svg" alt="Deploy to Koyeb" height="26"></a>
-</div>
-
-> [!TIP]
+> **⚠️ Python Environment Isolation — Important**
 >
-> - If you cannot access Docker Hub, please try the image on [GitHub Container Registry](https://github.com/Byaidu/PDFMathTranslate/pkgs/container/pdfmathtranslate).
-> ```bash
-> docker pull ghcr.io/byaidu/pdfmathtranslate
-> docker run -d -p 7860:7860 ghcr.io/byaidu/pdfmathtranslate
-> ```
-</details>
+> This project depends on `babeldoc` / `onnxruntime`, which require **Python ≥3.10, <3.13**.
+> FeatherFlow itself may run on a different Python version (e.g. 3.13+).
+> You **must** create a separate Python environment for this project and point FeatherFlow's MCP config to this project's Python executable — not FeatherFlow's own Python.
 
-<details>
-  <summary>3.2.* Solutions for network issues in installation</summary>
+- Python 3.10 – 3.12 (recommended: **3.12**)
+- Conda or virtualenv for environment isolation
 
-  Users in specific regions may encounter network difficulties when loading the AI model. The current program relies on the AI model (`wybxc/DocLayout-YOLO-DocStructBench-onnx`), and some users are unable to download it due to these network issues.
+## Installation
 
-  To address issues with downloading this model, use the following environment variable as a workaround:
+### 1. Create a dedicated Python 3.12 environment
 
-  ```shell
-  set HF_ENDPOINT=https://hf-mirror.com
-  ```
+Using **Conda** (recommended if system Python is ≥3.13):
 
-  For PowerShell user:
+```bash
+conda create -p /path/to/PDFMathTranslate/.venv python=3.12 -y
+conda activate /path/to/PDFMathTranslate/.venv
+```
 
-  ```shell
-  $env:HF_ENDPOINT = https://hf-mirror.com
-  ```
+Or using **venv** (if system Python is already 3.10–3.12):
 
-  If the solution does not work to you / you encountered other issues, please refer to [Frequently Asked Questions](https://github.com/Byaidu/PDFMathTranslate/wiki#-faq--%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98).
-</details>
+```bash
+python3 -m venv .venv
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate         # Windows
+```
 
+### 2. Install the package
 
-<h2 id="usage">4. Technical Details</h2>
+```bash
+pip install -e .
+```
 
-### 4.1 Advanced options
+This installs all dependencies: `pymupdf`, `pdfminer-six`, `babeldoc`, `onnxruntime`, `openai`, `mcp`, etc.
 
-Execute the translation command in the command line to generate the translated document `example-mono.pdf` and the bilingual document `example-dual.pdf` in the current working directory. Use Google as the default translation service. More support translation services can find [HERE](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#services).
+### 3. Verify
 
-<img src="./docs/images/cmd.explained.png" width="580px"  alt="cmd"/>
+```bash
+python -m pdf2zh.mcp_server --help
+```
 
-In the following table, we list all advanced options for reference:
+## FeatherFlow Configuration
 
-| Option                | Function                                                                                                      | Example                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| files                 | Local files                                                                                                   | `pdf2zh ~/local.pdf`                           |
-| links                 | Online files                                                                                                  | `pdf2zh http://arxiv.org/paper.pdf`            |
-| `-i`                  | [Enter GUI](#gui)                                                                                             | `pdf2zh -i`                                    |
-| `-p`                  | [Partial document translation](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#partial) | `pdf2zh example.pdf -p 1`                      |
-| `-li`                 | [Source language](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#languages)            | `pdf2zh example.pdf -li en`                    |
-| `-lo`                 | [Target language](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#languages)            | `pdf2zh example.pdf -lo zh`                    |
-| `-s`                  | [Translation service](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#services)         | `pdf2zh example.pdf -s deepl`                  |
-| `-t`                  | [Multi-threads](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#threads)                | `pdf2zh example.pdf -t 1`                      |
-| `-o`                  | Output dir                                                                                                    | `pdf2zh example.pdf -o output`                 |
-| `-f`, `-c`            | [Exceptions](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#exceptions)                | `pdf2zh example.pdf -f "(MS.*)"`               |
-| `-cp`                 | Compatibility Mode                                                                                            | `pdf2zh example.pdf --compatible`              |
-| `--skip-subset-fonts` | [Skip font subset](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#font-subset)         | `pdf2zh example.pdf --skip-subset-fonts`       |
-| `--ignore-cache`      | [Ignore translate cache](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#cache)         | `pdf2zh example.pdf --ignore-cache`            |
-| `--share`             | Public link                                                                                                   | `pdf2zh -i --share`                            |
-| `--authorized`        | [Authorization](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#auth)                   | `pdf2zh -i --authorized users.txt [auth.html]` |
-| `--prompt`            | [Custom Prompt](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#prompt)                 | `pdf2zh --prompt [prompt.txt]`                 |
-| `--onnx`              | [Use Custom DocLayout-YOLO ONNX model]                                                                        | `pdf2zh --onnx [onnx/model/path]`              |
-| `--serverport`        | [Use Custom WebUI port]                                                                                       | `pdf2zh --serverport 7860`                     |
-| `--dir`               | [batch translate]                                                                                             | `pdf2zh --dir /path/to/translate/`             |
-| `--config`            | [configuration file](https://github.com/Byaidu/PDFMathTranslate/blob/main/docs/ADVANCED.md#cofig)             | `pdf2zh --config /path/to/config/config.json`  |
-| `--serverport`        | [custom gradio server port]                                                                                   | `pdf2zh --serverport 7860`                     |
-| `--babeldoc`          | Use Experimental backend [BabelDOC](https://funstory-ai.github.io/BabelDOC/) to translate                     | `pdf2zh --babeldoc` -s openai example.pdf      |
-| `--mcp`               | Enable MCP STDIO mode                                                                                         | `pdf2zh --mcp`                                 |
-| `--sse`               | Enable MCP SSE mode                                                                                           | `pdf2zh --mcp --sse`                           |
+Edit `~/.featherflow/config.json` (or the config file for your setup). Add `pdf2zh` under `tools.mcpServers`.
 
-For detailed explanations, please refer to our document about [Advanced Usage](./docs/ADVANCED.md) for a full list of each option.
+> **Key point:** The `command` must point to this project's own Python executable, **not** FeatherFlow's Python. This project requires Python <3.13, while FeatherFlow may run on a newer version.
 
-<h3 id="downstream">4.2 Downstream Development</h3>
-For downstream applications, please refer to our document about [API Details](./docs/APIS.md) for further information about:
+### Example (Linux — production server)
 
-- [Python API](./docs/APIS.md#api-python), how to use the program in other Python programs
-- [HTTP API](./docs/APIS.md#api-http), how to communicate with a server with the program installed
+```json
+{
+  "tools": {
+    "mcpServers": {
+      "pdf2zh": {
+        "command": "/opt/PDFMathTranslate/.venv/bin/python",
+        "args": ["-m", "pdf2zh.mcp_server"],
+        "env": {
+          "OPENAI_BASE_URL": "https://openrouter.ai/api/v1",
+          "OPENAI_API_KEY": "sk-or-v1-xxxxxxxx",
+          "OPENAI_MODEL": "anthropic/claude-opus-4-5"
+        }
+      }
+    }
+  }
+}
+```
 
-<h3 id="downstream">4.3 Differences between two major forks</h3>
+### Example (Windows — development)
 
-- [Byaidu/PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate): The present and the original project for stable release.
+```json
+{
+  "tools": {
+    "mcpServers": {
+      "pdf2zh": {
+        "command": "C:/Users/<you>/code/PDFMathTranslate/.venv/python.exe",
+        "args": ["-m", "pdf2zh.mcp_server"],
+        "env": {
+          "OPENAI_BASE_URL": "https://openrouter.ai/api/v1",
+          "OPENAI_API_KEY": "sk-or-v1-xxxxxxxx",
+          "OPENAI_MODEL": "anthropic/claude-opus-4-5"
+        }
+      }
+    }
+  }
+}
+```
 
-- [PDFMathTranslate/PDFMathTranslate-next](https://github.com/PDFMathTranslate/PDFMathTranslate-next): A fork with web-ui and additional features. This fork handles a large number of marginal cases, improves PDF compatibility, and optimizes cross-column and cross-page semantic consistency, dynamic scaling, and dynamic scaling consistency, among many other translation quality improvements. However, this fork is intended solely for development and does not address compatibility issues and is not designed for community-contributions.
+> **Tip:** On Windows, use forward slashes `/` in JSON paths — they work fine with Python's `pathlib`.
 
-<h2 id="information">5. Project Information</h2>
-<h3 id="citation">5.1 Citation</h3>
+### Environment Variables
 
-This work has been accepted by the [*Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: System Demonstrations*](https://aclanthology.org/2025.emnlp-demos.71/) (EMNLP 2025). 
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENAI_BASE_URL` | Yes | API base URL (e.g. `https://openrouter.ai/api/v1`, `https://api.openai.com/v1`) |
+| `OPENAI_API_KEY` | Yes | API key for the provider |
+| `OPENAI_MODEL` | Yes | Model identifier (e.g. `anthropic/claude-opus-4-5`, `gpt-4o`) |
+| `WORKSPACE_DIR` | No | Shared workspace directory. Defaults to `~/.featherflow/workspace` (same as FeatherFlow's built-in file tools and `paper_download`). Override this if your workspace is at a non-standard location. |
 
-Citation:
+The `OPENAI_*` variables are the same credentials FeatherFlow uses — just pass them through via `env`. `WORKSPACE_DIR` usually does not need to be set; it automatically uses FeatherFlow's default workspace.
+
+## Standalone Usage (without FeatherFlow)
+
+### stdio mode (default)
+
+```bash
+python -m pdf2zh.mcp_server
+```
+
+### SSE mode (for web-based MCP clients)
+
+```bash
+python -m pdf2zh.mcp_server --sse --host 0.0.0.0 --port 3001
+```
+
+## Cross-MCP Workflow: pdf2zh + feishu-mcp
+
+This project is designed to work alongside [feishu-mcp](https://github.com/lichman0405/feishu-mcp). A typical end-to-end flow:
 
 ```
-@inproceedings{ouyang-etal-2025-pdfmathtranslate,
-	    title = "{PDFM}ath{T}ranslate: Scientific Document Translation Preserving Layouts",
-	    author = "Ouyang, Rongxin  and
-	      Chu, Chang  and
-	      Xin, Zhikuang  and
-	      Ma, Xiangyao",
-	    editor = {Habernal, Ivan  and
-	      Schulam, Peter  and
-	      Tiedemann, J{\"o}rg},
-	    booktitle = "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
-	    month = nov,
-	    year = "2025",
-	    address = "Suzhou, China",
-	    publisher = "Association for Computational Linguistics",
-	    url = "https://aclanthology.org/2025.emnlp-demos.71/",
-	    pages = "918--924",
-	    ISBN = "979-8-89176-334-0",
-	    abstract = "Language barriers in scientific documents hinder the diffusion and development of science and technologies. However, prior efforts in translating such documents largely overlooked the information in layouts. To bridge the gap, we introduce PDFMathTranslate, the world{'}s first open-source software for translating scientific documents while preserving layouts. Leveraging the most recent advances in large language models and precise layout detection, we contribute to the community with key improvements in precision, flexibility, and efficiency. The work is open-sourced at https://github.com/byaidu/pdfmathtranslate with more than 222k downloads."
-	}
+User: "Translate this paper and share it in the Feishu group"
+  ↓
+FeatherFlow (LLM orchestration):
+  1. paper_download → ~/.featherflow/workspace/paper.pdf
+  2. pdf2zh.translate_pdf(file="paper.pdf", lang_in="en", lang_out="zh")
+     → ~/.featherflow/workspace/paper-mono.pdf
+     → ~/.featherflow/workspace/paper-dual.pdf
+  3. feishu-mcp.upload_file_and_share(file_path="/home/user/.featherflow/workspace/paper-dual.pdf")
+     → share_url
+  4. feishu-mcp.send_message(chat_id, share_url)
 ```
-<h3 id="acknowledgement">5.2 Acknowledgement</h3>
 
-- [Immersive Translation](https://immersivetranslate.com) sponsors monthly Pro membership redemption codes for active contributors to this project, see details at: [CONTRIBUTOR_REWARD.md](https://github.com/funstory-ai/BabelDOC/blob/main/docs/CONTRIBUTOR_REWARD.md)
+**Why this works seamlessly:**
 
-- New backend: [BabelDOC](https://github.com/funstory-ai/BabelDOC)
+- pdf2zh writes output to `~/.featherflow/workspace` by default
+- feishu-mcp `upload_file` / `upload_file_and_share` accepts absolute file paths
+- pdf2zh returns absolute paths in its result — the LLM can extract and pass them directly to feishu-mcp
+- Both MCP servers run as local processes on the same machine, sharing the same filesystem
 
-- Document merging: [PyMuPDF](https://github.com/pymupdf/PyMuPDF)
+## Project Structure
 
-- Document parsing: [Pdfminer.six](https://github.com/pdfminer/pdfminer.six)
+```
+pdf2zh/
+  __init__.py        # Package entry, exports translate_stream
+  mcp_server.py      # MCP server (entry point, tools definition)
+  translator.py      # BaseTranslator + OpenAITranslator
+  converter.py       # PDF content conversion & layout processing
+  high_level.py      # Core translation pipeline (translate_stream)
+  config.py          # Configuration & constants
+  cache.py           # Translation cache (SQLite via peewee)
+  doclayout.py       # ONNX document layout model loading
+  pdfinterp.py       # Extended PDF interpreter
+pyproject.toml       # Dependencies & build config
+```
 
-- Document extraction: [MinerU](https://github.com/opendatalab/MinerU)
+## License
 
-- Document Preview: [Gradio PDF](https://github.com/freddyaboulton/gradio-pdf)
+[AGPL-3.0](LICENSE)
 
-- Multi-threaded translation: [MathTranslate](https://github.com/SUSYUSTC/MathTranslate)
+## Credits
 
-- Layout parsing: [DocLayout-YOLO](https://github.com/opendatalab/DocLayout-YOLO)
-
-- Document standard: [PDF Explained](https://zxyle.github.io/PDF-Explained/), [PDF Cheat Sheets](https://pdfa.org/resource/pdf-cheat-sheets/)
-
-- Multilingual Font: [Go Noto Universal](https://github.com/satbyy/go-noto-universal)
-
-<h3 id="contrib">5.3 Contributors</h3>
-
-<a href="https://github.com/Byaidu/PDFMathTranslate/graphs/contributors">
-  <img src="https://opencollective.com/PDFMathTranslate/contributors.svg?width=890&button=false" />
-</a>
-
-![Alt](https://repobeats.axiom.co/api/embed/dfa7583da5332a11468d686fbd29b92320a6a869.svg "Repobeats analytics image")
-
-For details on how to contribute, please consult the [Contribution Guide](https://github.com/Byaidu/PDFMathTranslate/wiki/Contribution-Guide---%E8%B4%A1%E7%8C%AE%E6%8C%87%E5%8D%97).
-
-
-<h3 id="star_hist">5.4 Star History</h3>
-
-<a href="https://star-history.com/#Byaidu/PDFMathTranslate&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Byaidu/PDFMathTranslate&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Byaidu/PDFMathTranslate&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Byaidu/PDFMathTranslate&type=Date"/>
- </picture>
-</a>
+- Core PDF translation engine from [PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate) by Byaidu
+- MCP host integration for [FeatherFlow](https://github.com/lichman0405/featherflow)

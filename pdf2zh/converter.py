@@ -16,30 +16,8 @@ from pymupdf import Font
 from tenacity import retry, wait_fixed
 
 from pdf2zh.translator import (
-    AnythingLLMTranslator,
-    ArgosTranslator,
-    AzureOpenAITranslator,
-    AzureTranslator,
     BaseTranslator,
-    BingTranslator,
-    DeepLTranslator,
-    DeepLXTranslator,
-    DeepseekTranslator,
-    DifyTranslator,
-    GeminiTranslator,
-    GoogleTranslator,
-    GrokTranslator,
-    GroqTranslator,
-    ModelScopeTranslator,
-    OllamaTranslator,
-    OpenAIlikedTranslator,
     OpenAITranslator,
-    QwenMtTranslator,
-    SiliconTranslator,
-    TencentTranslator,
-    XinferenceTranslator,
-    ZhipuTranslator,
-    X302AITranslator,
 )
 
 log = logging.getLogger(__name__)
@@ -153,18 +131,16 @@ class TranslateConverter(PDFConverterEx):
         self.noto_name = noto_name
         self.noto = noto
         self.translator: BaseTranslator = None
-        # e.g. "ollama:gemma2:9b" -> ["ollama", "gemma2:9b"]
+        # e.g. "openai:gpt-4o" -> ["openai", "gpt-4o"]
         param = service.split(":", 1)
         service_name = param[0]
         service_model = param[1] if len(param) > 1 else None
         if not envs:
             envs = {}
-        for translator in [GoogleTranslator, BingTranslator, DeepLTranslator, DeepLXTranslator, OllamaTranslator, XinferenceTranslator, AzureOpenAITranslator,
-                           OpenAITranslator, ZhipuTranslator, ModelScopeTranslator, SiliconTranslator, GeminiTranslator, AzureTranslator, TencentTranslator, DifyTranslator, AnythingLLMTranslator, ArgosTranslator, GrokTranslator, GroqTranslator, DeepseekTranslator, OpenAIlikedTranslator, QwenMtTranslator, X302AITranslator]:
-            if service_name == translator.name:
-                self.translator = translator(lang_in, lang_out, service_model, envs=envs, prompt=prompt, ignore_cache=ignore_cache)
+        if service_name == OpenAITranslator.name:
+            self.translator = OpenAITranslator(lang_in, lang_out, service_model, envs=envs, prompt=prompt, ignore_cache=ignore_cache)
         if not self.translator:
-            raise ValueError("Unsupported translation service")
+            raise ValueError(f"Unsupported translation service: {service_name}. Only 'openai' is supported.")
 
     def receive_layout(self, ltpage: LTPage):
         # 段落

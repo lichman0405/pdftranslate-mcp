@@ -1,7 +1,7 @@
 [project]
 name = "pdf2zh"
 version = "1.9.11"
-description = "Latex PDF Translator"
+description = "PDF scientific document translator (MCP server) — preserves formulas & layout"
 authors = [{ name = "Byaidu", email = "byaidux@gmail.com" }]
 license = "AGPL-3.0"
 readme = "README.md"
@@ -11,45 +11,31 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "requests",
-    # for arm64 linux whells
+    # ── PDF processing ──
     "pymupdf<1.25.3",
-    "tqdm",
-    "tenacity",
-    "numpy",
-    "ollama",
-    "xinference-client",
-    "deepl",
-    "openai>=1.0.0",
-    "azure-ai-translation-text<=1.0.1",
-    # 5.36 has a bug, webui starts with a white screen
-    "gradio<5.36",
-    "huggingface_hub",
+    "pdfminer-six==20250416",
+    "pikepdf",
+    "fontTools",
+    # ── Layout analysis ──
     "onnx",
     "onnxruntime",
     "opencv-python-headless",
-    "tencentcloud-sdk-python-tmt",
-    "pdfminer-six==20250416",
-    "gradio_pdf>=0.0.21",
-    "pikepdf",
+    "numpy",
+    "huggingface_hub",
+    "babeldoc>=0.1.22",
+    # ── Translation (OpenAI-compatible) ──
+    "openai>=1.0.0",
+    "tenacity",
+    # ── MCP server ──
+    "mcp>=1.6.0",
+    # ── Misc ──
+    "requests",
+    "tqdm",
     "peewee>=3.17.8",
-    "fontTools",
-    "babeldoc>=0.1.22, <0.3.0",
     "rich",
 ]
 
 [project.optional-dependencies]
-backend = [
-    "flask",
-    "celery",
-    "redis"
-]
-argostranslate = [
-    "argostranslate"
-]
-mcp = [
-    "mcp>=1.6.0",
-]
 
 [dependency-groups]
 dev = [
@@ -69,7 +55,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-pdf2zh = "pdf2zh.pdf2zh:main"
+pdf2zh = "pdf2zh.mcp_server:main"
 
 [tool.flake8]
 ignore = ["E203", "E261", "E501", "W503", "E741"]
