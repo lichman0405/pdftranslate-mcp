@@ -82,6 +82,28 @@ def _ensure_model_loaded():
         ModelInstance.value = OnnxModel.load_available()
 
 
+def _warmup():
+    """Pre-download heavy resources (ONNX model + common fonts) at startup.
+
+    This avoids long delays on the first translation request.
+    """
+    from pdf2zh.high_level import download_remote_fonts
+
+    logger.info("Warmup: loading doc-layout ONNX model...")
+    _ensure_model_loaded()
+    logger.info("Warmup: ONNX model ready.")
+
+    # Pre-download the most commonly used fonts
+    common_langs = ["zh", "ja", "ko"]
+    for lang in common_langs:
+        logger.info(f"Warmup: pre-downloading font for '{lang}'...")
+        try:
+            download_remote_fonts(lang)
+        except Exception as e:
+            logger.warning(f"Warmup: failed to download font for '{lang}': {e}")
+    logger.info("Warmup: all resources ready.")
+
+
 def create_mcp_app() -> FastMCP:
     mcp = FastMCP("pdf2zh")
 
@@ -245,6 +267,9 @@ def main():
         help="Port to bind (SSE mode only)",
     )
     args = parser.parse_args()
+
+    # Pre-download ONNX model and fonts so the first request is fast
+    _warmup()
 
     mcp = create_mcp_app()
 
