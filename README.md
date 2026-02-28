@@ -37,31 +37,76 @@ Output PDFs are written to the workspace directory by default. The returned path
 > You **must** create a separate Python environment for this project and point FeatherFlow's MCP config to this project's Python executable — not FeatherFlow's own Python.
 
 - Python 3.10 – 3.12 (recommended: **3.12**)
-- Conda or virtualenv for environment isolation
+- [uv](https://github.com/astral-sh/uv) (recommended), Conda, or virtualenv for environment isolation
 
 ## Installation
 
-### 1. Create a dedicated Python 3.12 environment
+### 0. Install uv (one-time setup, recommended)
 
-Using **Conda** (recommended if system Python is ≥3.13):
+uv can automatically download and manage any Python version — no need to
+install Python 3.12 manually.
 
 ```bash
-conda create -p /path/to/PDFMathTranslate/.venv python=3.12 -y
-conda activate /path/to/PDFMathTranslate/.venv
+# Linux / macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows PowerShell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Or using **venv** (if system Python is already 3.10–3.12):
+Restart your terminal after installation, then verify:
 
 ```bash
-python3 -m venv .venv
+uv --version
+```
+
+### 1. Create a dedicated Python 3.12 environment
+
+**Using uv** (recommended — auto-downloads Python 3.12 even if you only have 3.13+):
+
+```bash
+cd /path/to/pdftranslate-mcp
+uv venv .venv --python 3.12
+```
+
+Activate the environment:
+
+```bash
+# Linux / macOS
+source .venv/bin/activate
+
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# Windows CMD
+.venv\Scripts\activate.bat
+```
+
+**Alternative: Conda**
+
+```bash
+conda create -p /path/to/pdftranslate-mcp/.venv python=3.12 -y
+conda activate /path/to/pdftranslate-mcp/.venv
+```
+
+**Alternative: venv** (only if system Python is already 3.10–3.12)
+
+```bash
+python3.12 -m venv .venv
 source .venv/bin/activate        # Linux/macOS
-# .venv\Scripts\activate         # Windows
+# .venv\Scripts\Activate.ps1     # Windows PowerShell
 ```
 
 ### 2. Install the package
 
 ```bash
 pip install -e .
+```
+
+Or with uv (10-100x faster):
+
+```bash
+uv pip install -e .
 ```
 
 This installs all dependencies: `pymupdf`, `pdfminer-six`, `babeldoc`, `onnxruntime`, `openai`, `mcp`, etc.
