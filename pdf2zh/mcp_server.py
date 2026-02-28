@@ -159,6 +159,37 @@ def create_mcp_app() -> FastMCP:
             if val:
                 envs[key] = val
 
+        # Count total pages for progress reporting
+        import pymupdf
+        tmp_doc = pymupdf.Document(stream=file_bytes)
+        total_pages = tmp_doc.page_count
+        tmp_doc.close()
+
+        # Progress callback — reports page-level progress via MCP protocol
+        _current_ctx = ctx
+        _total = total_pages
+
+        def _progress_callback(tqdm_bar):
+            """Called after each page is translated."""
+            done = tqdm_bar.n
+            if _current_ctx:
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        loop.create_task(
+                            _current_ctx.report_progress(done, _total)
+                        )
+                except RuntimeError:
+                    pass  # No event loop available
+
+        if ctx:
+            await ctx.report_progress(0, total_pages)
+            await ctx.log(
+                level="info",
+                message=f"Translating {total_pages} pages..."
+            )
+
         with contextlib.redirect_stdout(io.StringIO()):
             doc_mono_bytes, doc_dual_bytes = translate_stream(
                 file_bytes,
@@ -168,6 +199,7 @@ def create_mcp_app() -> FastMCP:
                 model=ModelInstance.value,
                 thread=4,
                 envs=envs,
+                callback=_progress_callback,
             )
 
         # Determine output path — default to workspace (shared with FeatherFlow
@@ -188,6 +220,7 @@ def create_mcp_app() -> FastMCP:
             f.write(doc_dual_bytes)
 
         if ctx:
+            await ctx.report_progress(total_pages, total_pages)
             await ctx.log(level="info", message="Translation complete")
 
         return (
