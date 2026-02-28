@@ -161,27 +161,10 @@ def create_mcp_app() -> FastMCP:
 
         # Count total pages for progress reporting
         import pymupdf
+        import asyncio
         tmp_doc = pymupdf.Document(stream=file_bytes)
         total_pages = tmp_doc.page_count
         tmp_doc.close()
-
-        # Progress callback — reports page-level progress via MCP protocol
-        _current_ctx = ctx
-        _total = total_pages
-
-        def _progress_callback(tqdm_bar):
-            """Called after each page is translated."""
-            done = tqdm_bar.n
-            if _current_ctx:
-                import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        loop.create_task(
-                            _current_ctx.report_progress(done, _total)
-                        )
-                except RuntimeError:
-                    pass  # No event loop available
 
         if ctx:
             await ctx.report_progress(0, total_pages)
@@ -190,16 +173,35 @@ def create_mcp_app() -> FastMCP:
                 message=f"Translating {total_pages} pages..."
             )
 
+        # Progress callback — called from the worker thread after each page.
+        # Uses call_soon_threadsafe to schedule the coroutine on the main loop.
+        _loop = asyncio.get_event_loop()
+        _current_ctx = ctx
+
+        def _progress_callback(tqdm_bar):
+            done = tqdm_bar.n
+            if _current_ctx and _loop.is_running():
+                _loop.call_soon_threadsafe(
+                    lambda d=done: _loop.create_task(
+                        _current_ctx.report_progress(d, total_pages)
+                    )
+                )
+
+        # Run the blocking translate_stream in a thread pool so the async
+        # event loop stays free to send progress notifications.
         with contextlib.redirect_stdout(io.StringIO()):
-            doc_mono_bytes, doc_dual_bytes = translate_stream(
-                file_bytes,
-                lang_in=lang_in,
-                lang_out=lang_out,
-                service="openai",
-                model=ModelInstance.value,
-                thread=4,
-                envs=envs,
-                callback=_progress_callback,
+            doc_mono_bytes, doc_dual_bytes = await _loop.run_in_executor(
+                None,
+                lambda: translate_stream(
+                    file_bytes,
+                    lang_in=lang_in,
+                    lang_out=lang_out,
+                    service="openai",
+                    model=ModelInstance.value,
+                    thread=4,
+                    envs=envs,
+                    callback=_progress_callback,
+                ),
             )
 
         # Determine output path — default to workspace (shared with FeatherFlow
