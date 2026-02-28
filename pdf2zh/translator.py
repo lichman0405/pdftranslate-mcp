@@ -168,13 +168,24 @@ class OpenAITranslator(BaseTranslator):
         if not model:
             model = self.envs["OPENAI_MODEL"]
         super().__init__(lang_in, lang_out, model, ignore_cache)
-        self.options = {"temperature": 0}
+        # Temperature is optional – some models (e.g. kimi-k2.5) only accept
+        # specific values.  Let the server decide unless explicitly overridden
+        # via the OPENAI_TEMPERATURE env var.
+        self.options = {}
+        _temp = self.envs.get("OPENAI_TEMPERATURE")
+        if _temp is not None:
+            try:
+                self.options["temperature"] = float(_temp)
+            except ValueError:
+                pass
         self.client = openai.OpenAI(
             base_url=base_url or self.envs["OPENAI_BASE_URL"],
             api_key=api_key or self.envs["OPENAI_API_KEY"],
         )
         self.prompttext = prompt
-        self.add_cache_impact_parameters("temperature", self.options["temperature"])
+        self.add_cache_impact_parameters(
+            "temperature", self.options.get("temperature", "default")
+        )
         self.add_cache_impact_parameters("prompt", self.prompt("", self.prompttext))
         think_filter_regex = r"^<think>.+?\n*(</think>|\n)*(</think>)\n*"
         self.add_cache_impact_parameters("think_filter_regex", think_filter_regex)
